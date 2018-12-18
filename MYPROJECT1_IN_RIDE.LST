@@ -1,0 +1,200 @@
+MACRO ASSEMBLER MYPROJECT1_IN_RIDE                          12/17/14 05:24:35 PAGE     1
+
+
+WIN32 MACRO ASSEMBLER MA51 V06.04.19OBJECT MODULE PLACED IN C:\USERS\IFEDIORA E\DOCUMENTS\IT REPORT 300 FEDY\AUTOMATICCOS\MYPROJECT1_IN_RIDE.OBJ
+ASSEMBLER INVOKED BY: MA51.EXE C:\USERS\IFEDIORA E\DOCUMENTS\IT REPORT 300 FEDY\AUTOMATICCOS\MYPROJECT1_IN_RIDE.A51 OJ(C:\USERS\IFEDIORA E\DOCUMENTS\IT REPORT 300 FEDY\AUTOMATICCOS\MYPROJECT1_IN_RIDE.OBJ) PIN(C:\RIDE\INC;C:\RIDE\INC\51) PIN(C:\RIDE\INC\51\PHILIPS\) EP LINES SYNTAX(ASM51) PR(C:\USERS\IFEDIORA E\DOCUMENTS\IT REPORT 300 FEDY\AUTOMATICCOS\MYPROJECT1_IN_RIDE.LST) XR DB PW(80) RB(0) 
+
+LOC     OBJ           LINE    SOURCE
+                         1     ; 							ADOREMUS IN AETEMUM SANTICCIMUM SACRAMENTUM
+                         2     
+                         3     ; *** File Name: ACOSmain.asm
+                         4     ; *** Project: Automatic Change Over Switch for 3 phases and generator sypplies
+                         5     ; *** Author: FEDYRONIX INC.
+                         6     ; *** Date: 04/01/2007
+                         7     ; *** Processor: Atmel AT89C1051 Microcontroller (Compatible With MCS-51)
+                         8     ; *** Priority Switch: 4 DIP SW
+                         9     ; *** Phase Selector Driver: ULN2001
+                        10     
+                        11     ; A PROGRAM THAT MONITORS THE PHASE INDISCATORS AND SWITCHES THE PHASE SELECTORS ACCORDINGLY
+                        12      
+                        13     ; ====================================== DEFINITIONS ==================================================
+                        14     
+                        15     ; ========================================== MAIN =====================================================
+                        16     $INCLUDE	(REG51.INC) 
+  0000                  95     				ORG		0000H
+0000    020006          96     				JMP		MAIN					; ON SYSTEM RESET, JUMP TO MAIN
+                        97     
+                        98     ; =====================================================================================================
+  0006                  99     				ORG		0006H					; START AT THIS ADDRESS
+                       100     MAIN: 			
+0006    75900F         101     				MOV		P1, #0FH				; MAKE THE LSB OF P1 INPUT PORTS
+                       102     
+                       103     REPEAT: 		
+0009    209010         104     				JB		P1.0, R_PHASE			; IS RED PHASE ON? IF YES TURN OFF GEN
+000C    C294           105     				CLR		P1.4
+                       106     
+000E    20910F         107     				JB		P1.1, Y_PHASE			; IS YELLOW PHASE ON? IF YES TURN OFF GEN
+0011    C295           108     				CLR		P1.5
+                       109     
+0013    20920E         110     				JB		P1.2, B_PHASE			; IS BLUE PHASE ON? IF YES TURN OFF GEN
+0016    C296           111     				CLR		P1.6
+                       112     
+0018    D297           113     				SETB	P1.7					; TURN ON THE GENERATOR
+                       114     
+001A    80ED           115     				SJMP	REPEAT
+                       116     
+                       117     ; =====================================================================================================
+001C    1128           118     R_PHASE: 		ACALL	R_TURN_OFF_GEN
+001E    80E9           119     				SJMP	REPEAT
+0020    113A           120     Y_PHASE: 		ACALL	Y_TURN_OFF_GEN
+0022    80E5           121     				SJMP	REPEAT
+0024    114C           122     B_PHASE: 		ACALL	B_TURN_OFF_GEN
+0026    80E1           123     				SJMP	REPEAT   
+                       124     
+                       125     ;======================================================================================================
+                       126     R_TURN_OFF_GEN: 	
+0028    C297           127     				CLR		P1.7					; TURN OFF THE GENERATOR
+002A    C295           128     				CLR		P1.5					; CLEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+002C    C296           129     				CLR		P1.6					
+002E    115E           130     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+0030    D294           131     				SETB	P1.4					; CONNECT THE RED PHASE
+0032    2090FD         132     				JB		P1.0, $					; STAY HERE AS LONG AS THE RED PHASE IS ON
+0035    C294           133     				CLR		P1.4					; ELSE RED PHASE IS OFF, DISCONNECT	R
+0037    115E           134     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+0039    22             135     				RET
+                       136     
+                       137     Y_TURN_OFF_GEN: 
+003A    C297           138     				CLR		P1.7					; TURN OFF THE GENERATOR
+003C    C296           139     				CLR		P1.6					; CLEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+003E    C294           140     				CLR		P1.4					
+0040    115E           141     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+0042    D295           142     				SETB	P1.5					; CONNECT THE YELLOW PHASE
+0044    2091FD         143     				JB		P1.1, $					; STAY HERE AS LONG AS THE YELLOW PHASE IS ON
+0047    C295           144     				CLR		P1.5					; ELSE YELLOW PHASE IS OFF, DISCONNECT Y
+0049    115E           145     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+004B    22             146     				RET
+                       147     
+                       148     B_TURN_OFF_GEN: 
+004C    C297           149     				CLR		P1.7					; TURN OFF THE GENERATOR
+004E    C295           150     				CLR		P1.5					; CLEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+0050    C294           151     				CLR		P1.4
+0052    115E           152     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+0054    D296           153     				SETB	P1.6					; CONNECT THE BLUE PHASE
+0056    2092FD         154     				JB		P1.2, $					; STAY HERE AS LONG AS THE BLUE PHASE IS ON
+0059    C296           155     				CLR		P1.6					; ELSE BLUE PHASE IS OFF, DISCONNECT B
+005B    115E           156     				ACALL	DELAY					; CALL DELAY FOR PROTECTION
+005D    22             157     				RET
+                       158     
+                       159     ; ============================== DELAY USED FOR SAFETY/PROTECTION =====================================
+                       160     DELAY: 			
+005E    78FF           161     				MOV		R0, #0FFH 
+0060    79FF           162     J: 				MOV		R1, #0FFH
+0062    D9FE           163     				DJNZ	R1, $
+0064    D8FA           164     				DJNZ	R0, J
+0066    22             165     				RET
+                       166     
+                       167     				END 
+MACRO ASSEMBLER MYPROJECT1_IN_RIDE                          12/17/14 05:24:35 PAGE     0
+
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES             REFERENCES
+
+DPL. . . . . . . .  D ADDR   0082H   A                          31# 
+P0 . . . . . . . .  D ADDR   0080H   A                          23# 
+REPEAT . . . . . .  C ADDR   0009H   A                          103# 115 119 121 
+                                                                123 
+P1 . . . . . . . .  D ADDR   0090H   A                          24# 101 104 105 107 
+                                                                108 110 111 113 127 
+                                                                128 129 131 132 133 
+                                                                138 139 140 142 143 
+                                                                144 149 150 151 153 
+                                                                154 155 167 
+R_PHASE. . . . . .  C ADDR   001CH   A                          104 118# 
+B. . . . . . . . .  D ADDR   00F0H   A                          29# 
+P2 . . . . . . . .  D ADDR   00A0H   A                          25# 
+PS . . . . . . . .  B ADDR   00B8H.4 A                          72# 
+SP . . . . . . . .  D ADDR   0081H   A                          30# 
+P3 . . . . . . . .  D ADDR   00B0H   A                          26# 
+T0 . . . . . . . .  B ADDR   00B0H.4 A                          81# 
+AC . . . . . . . .  B ADDR   00D0H.6 A                          49# 
+MAIN . . . . . . .  C ADDR   0006H   A                          96 100# 
+REN. . . . . . . .  B ADDR   0098H.4 A                          90# 
+T1 . . . . . . . .  B ADDR   00B0H.5 A                          80# 
+OV . . . . . . . .  B ADDR   00D0H.2 A                          53# 
+EA . . . . . . . .  B ADDR   00A8H.7 A                          65# 
+ACC. . . . . . . .  D ADDR   00E0H   A                          28# 
+Y_PHASE. . . . . .  C ADDR   0020H   A                          107 120# 
+WR . . . . . . . .  B ADDR   00B0H.6 A                          79# 
+ET0. . . . . . . .  B ADDR   00A8H.1 A                          69# 
+J. . . . . . . . .  C ADDR   0060H   A                          162# 164 
+ET1. . . . . . . .  B ADDR   00A8H.3 A                          67# 
+TF0. . . . . . . .  B ADDR   0088H.5 A                          58# 
+TF1. . . . . . . .  B ADDR   0088H.7 A                          56# 
+RB8. . . . . . . .  B ADDR   0098H.2 A                          92# 
+TH0. . . . . . . .  D ADDR   008CH   A                          38# 
+R_TURN_OFF_GEN . .  C ADDR   0028H   A                          118 126# 
+EX0. . . . . . . .  B ADDR   00A8H.0 A                          70# 
+IT0. . . . . . . .  B ADDR   0088H.0 A                          63# 
+TH1. . . . . . . .  D ADDR   008DH   A                          39# 
+TB8. . . . . . . .  B ADDR   0098H.3 A                          91# 
+RXD. . . . . . . .  B ADDR   00B0H.0 A                          85# 
+EX1. . . . . . . .  B ADDR   00A8H.2 A                          68# 
+IT1. . . . . . . .  B ADDR   0088H.2 A                          61# 
+IE . . . . . . . .  D ADDR   00A8H   A                          40# 
+DELAY. . . . . . .  C ADDR   005EH   A                          130 134 141 145 152 
+                                                                156 160# 
+SM0. . . . . . . .  B ADDR   0098H.7 A                          87# 
+TXD. . . . . . . .  B ADDR   00B0H.1 A                          84# 
+P. . . . . . . . .  B ADDR   00D0H.0 A                          54# 
+SBUF . . . . . . .  D ADDR   0099H   A                          43# 
+TL0. . . . . . . .  D ADDR   008AH   A                          36# 
+PCON . . . . . . .  D ADDR   0087H   A                          33# 
+SM1. . . . . . . .  B ADDR   0098H.6 A                          88# 
+TL1. . . . . . . .  D ADDR   008BH   A                          37# 
+B_PHASE. . . . . .  C ADDR   0024H   A                          110 122# 
+SM2. . . . . . . .  B ADDR   0098H.5 A                          89# 
+SCON . . . . . . .  D ADDR   0098H   A                          42# 
+Y_TURN_OFF_GEN . .  C ADDR   003AH   A                          120 137# 
+PT0. . . . . . . .  B ADDR   00B8H.1 A                          75# 
+TMOD . . . . . . .  D ADDR   0089H   A                          35# 
+TCON . . . . . . .  D ADDR   0088H   A                          34# 
+PT1. . . . . . . .  B ADDR   00B8H.3 A                          73# 
+RS0. . . . . . . .  B ADDR   00D0H.3 A                          52# 
+RD . . . . . . . .  B ADDR   00B0H.7 A                          78# 
+TR0. . . . . . . .  B ADDR   0088H.4 A                          59# 
+RS1. . . . . . . .  B ADDR   00D0H.4 A                          51# 
+F0 . . . . . . . .  B ADDR   00D0H.5 A                          50# 
+TR1. . . . . . . .  B ADDR   0088H.6 A                          57# 
+PX0. . . . . . . .  B ADDR   00B8H.0 A                          76# 
+ES . . . . . . . .  B ADDR   00A8H.4 A                          66# 
+PX1. . . . . . . .  B ADDR   00B8H.2 A                          74# 
+IP . . . . . . . .  D ADDR   00B8H   A                          41# 
+PSW. . . . . . . .  D ADDR   00D0H   A                          27# 
+RI . . . . . . . .  B ADDR   0098H.0 A                          94# 
+INT0 . . . . . . .  B ADDR   00B0H.2 A                          83# 
+INT1 . . . . . . .  B ADDR   00B0H.3 A                          82# 
+CY . . . . . . . .  B ADDR   00D0H.7 A                          48# 
+DPH. . . . . . . .  D ADDR   0083H   A                          32# 
+B_TURN_OFF_GEN . .  C ADDR   004CH   A                          122 148# 
+TI . . . . . . . .  B ADDR   0098H.1 A                          93# 
+IE0. . . . . . . .  B ADDR   0088H.1 A                          62# 
+IE1. . . . . . . .  B ADDR   0088H.3 A                          60# 
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    100    ----
+   XDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+REGISTER BANK(S) USED : 0 
+
+ASSEMBLY COMPLETE.   0 WARNING(S)   0 ERROR(S)

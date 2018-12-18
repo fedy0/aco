@@ -1,0 +1,3 @@
+".\ACOSHex\ACOSmain_P.obj" 
+TO ".\ACOSHex\AutomaticCOS" 
+PRINT(".\AutomaticCOS.m51")

@@ -1,0 +1,163 @@
+A51 MACRO ASSEMBLER  ACOSMAIN_NO_P                                                        12/17/2014 05:31:20 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.00
+OBJECT MODULE PLACED IN .\ACOSHex\ACOSmain_NO_P.obj
+ASSEMBLER INVOKED BY: C:\Keil\C51\BIN\A51.EXE ACOSmain_NO_P.a SET(SMALL) DEBUG OBJECT(.\ACOSHex\ACOSmain_NO_P.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     ;                                                       ADOREMUS IN AETEMUM SANCTISSIMUM SA
+                             CRAMENTUM
+                       2     
+                       3     ; *** File Name: ACOSmain.asm
+                       4     ; *** Project: Automatic Change Over Switch for 3 phases and generator sypplies
+                       5     ; *** Author: FEDYRONIX INC.
+                       6     ; *** Date: 04/01/2007
+                       7     ; *** Processor: Atmel AT89C1051 Microcontroller (Compatible With MCS-51)
+                       8     ; *** Priority Switch: 4 DIP SW
+                       9     ; *** Phase Selector Driver: ULN2001
+                      10     
+                      11     ; A PROGRAM THAT MONITORS THE PHASE INDISCATORS AND SWITCHES THE PHASE SELECTORS ACCORDINGL
+                             Y
+                      12     
+                      13     ; ====================================== DEFINITIONS ======================================
+                             ============
+                      14     
+                      15     ; ========================================== MAIN =========================================
+                             ============
+                      16     
+0000                  17                                     ORG             0000H
+0000 8004             18                                     JMP             MAIN                                    ; O
+                             N SYSTEM RESET, JUMP TO MAIN
+                      19     
+                      20     ; =========================================================================================
+                             ============
+0006                  21                                     ORG             0006H                                   ; S
+                             TART AT THIS ADDRESS
+0006                  22     MAIN:                   
+0006 75900F           23                                     MOV             P1, #0FH                                ; M
+                             AKE THE LSB OF P1 INPUT PORTS
+                      24     
+0009                  25     REPEAT:         
+0009 209010           26                                     JB              P1.0, R_PHASE                   ; IS RED PH
+                             ASE ON? IF YES TURN OFF GEN
+000C C294             27                                     CLR             P1.4
+                      28     
+000E 20910F           29                                     JB              P1.1, Y_PHASE                   ; IS YELLOW
+                              PHASE ON? IF YES TURN OFF GEN
+0011 C295             30                                     CLR             P1.5
+                      31     
+0013 20920E           32                                     JB              P1.2, B_PHASE                   ; IS BLUE P
+                             HASE ON? IF YES TURN OFF GEN
+0016 C296             33                                     CLR             P1.6
+                      34     
+0018 D297             35                                     SETB    P1.7                                    ; TURN ON T
+                             HE GENERATOR
+                      36     
+001A 80ED             37                                     SJMP    REPEAT
+                      38     
+                      39     ; =========================================================================================
+                             ============
+001C 1128             40     R_PHASE:                ACALL   R_TURN_OFF_GEN
+001E 80E9             41                                     SJMP    REPEAT
+0020 113A             42     Y_PHASE:                ACALL   Y_TURN_OFF_GEN
+0022 80E5             43                                     SJMP    REPEAT
+0024 114C             44     B_PHASE:                ACALL   B_TURN_OFF_GEN
+0026 80E1             45                                     SJMP    REPEAT   
+A51 MACRO ASSEMBLER  ACOSMAIN_NO_P                                                        12/17/2014 05:31:20 PAGE     2
+
+                      46     
+                      47     ;==========================================================================================
+                             ============
+0028                  48     R_TURN_OFF_GEN: 
+0028 C297             49                                     CLR             P1.7                                    ; T
+                             URN OFF THE GENERATOR
+002A C295             50                                     CLR             P1.5                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+002C C296             51                                     CLR             P1.6                                    
+002E 115E             52                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0030 D294             53                                     SETB    P1.4                                    ; CONNECT T
+                             HE RED PHASE
+0032 2090FD           54                                     JB              P1.0, $                                 ; S
+                             TAY HERE AS LONG AS THE RED PHASE IS ON
+0035 C294             55                                     CLR             P1.4                                    ; E
+                             LSE RED PHASE IS OFF, DISCONNECT     R
+0037 115E             56                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0039 22               57                                     RET
+                      58     
+003A                  59     Y_TURN_OFF_GEN:
+003A C297             60                                     CLR             P1.7                                    ; T
+                             URN OFF THE GENERATOR
+003C C296             61                                     CLR             P1.6                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+003E C294             62                                     CLR             P1.4                                    
+0040 115E             63                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0042 D295             64                                     SETB    P1.5                                    ; CONNECT T
+                             HE YELLOW PHASE
+0044 2091FD           65                                     JB              P1.1, $                                 ; S
+                             TAY HERE AS LONG AS THE YELLOW PHASE IS ON
+0047 C295             66                                     CLR             P1.5                                    ; E
+                             LSE YELLOW PHASE IS OFF, DISCONNECT Y
+0049 115E             67                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+004B 22               68                                     RET
+                      69     
+004C                  70     B_TURN_OFF_GEN:
+004C C297             71                                     CLR             P1.7                                    ; T
+                             URN OFF THE GENERATOR
+004E C295             72                                     CLR             P1.5                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+0050 C294             73                                     CLR             P1.4
+0052 115E             74                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0054 D296             75                                     SETB    P1.6                                    ; CONNECT T
+                             HE BLUE PHASE
+0056 2092FD           76                                     JB              P1.2, $                                 ; S
+                             TAY HERE AS LONG AS THE BLUE PHASE IS ON
+0059 C296             77                                     CLR             P1.6                                    ; E
+                             LSE BLUE PHASE IS OFF, DISCONNECT B
+005B 115E             78                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+005D 22               79                                     RET
+                      80     
+                      81     ; ============================== DELAY USED FOR SAFETY/PROTECTION =========================
+                             ============
+005E                  82     DELAY:                  
+005E 78FF             83                                     MOV             R0, #0FFH 
+0060 79FF             84     J:                              MOV             R1, #0FFH
+0062 D9FE             85                                     DJNZ    R1, $
+0064 D8FA             86                                     DJNZ    R0, J
+0066 22               87                                     RET
+                      88     
+A51 MACRO ASSEMBLER  ACOSMAIN_NO_P                                                        12/17/2014 05:31:20 PAGE     3
+
+                      89                                     END
+A51 MACRO ASSEMBLER  ACOSMAIN_NO_P                                                        12/17/2014 05:31:20 PAGE     4
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+B_PHASE. . . . . .  C ADDR   0024H   A   
+B_TURN_OFF_GEN . .  C ADDR   004CH   A   
+DELAY. . . . . . .  C ADDR   005EH   A   
+J. . . . . . . . .  C ADDR   0060H   A   
+MAIN . . . . . . .  C ADDR   0006H   A   
+P1 . . . . . . . .  D ADDR   0090H   A   
+REPEAT . . . . . .  C ADDR   0009H   A   
+R_PHASE. . . . . .  C ADDR   001CH   A   
+R_TURN_OFF_GEN . .  C ADDR   0028H   A   
+Y_PHASE. . . . . .  C ADDR   0020H   A   
+Y_TURN_OFF_GEN . .  C ADDR   003AH   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)

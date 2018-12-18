@@ -1,0 +1,440 @@
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.01
+OBJECT MODULE PLACED IN .\ACOSHex\ACOSmain_P.obj
+ASSEMBLER INVOKED BY: C:\Keil\C51\BIN\A51.EXE ACOSmain_P.a SET(SMALL) DEBUG OBJECT(.\ACOSHex\ACOSmain_P.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     ;                                                       ADOREMUS IN AETEMUM SANTICCIMUM SAC
+                             RAMENTUM
+                       2     
+                       3     ; *** File Name: ACOSmain.asm
+                       4     ; *** Project: Automatic Change Over Switch for 3 phases and generator sypplies with 4 Prio
+                             rity levels
+                       5     ; *** Author: Ifediora Elochukwu C. @ FEDYRONIX INC.
+                       6     ; *** Date: 13/11/2014
+                       7     ; *** Processor: Atmel AT89C1051 Microcontroller (Compatible With MCS-51)
+                       8     ; *** Priority Switch: 4 DIP SW
+                       9     ; *** Phase Selector Driver: ULN2001
+                      10     
+                      11     ; A PROGRAM THAT MONITORS THE PHASE INDISCATORS AND SWITCHES THE PHASE SELECTORS ACCORDINGL
+                             Y 
+                      12     ; (ie BASED ON PRIORITIES SET BY THE USER)
+                      13     
+                      14     ; ====================================== DEFINITIONS ======================================
+                             ============
+                      15     ; FLAGS:
+                      16     ;                               PTIF    BIT             00H                             ; P
+                             RIORITY TEST INDICATION FLAG
+                      17     ;                               PISCF   BIT             01H                             ; P
+                             HASE INDICATORS' STATE CHANGED FLAG
+                      18     
+                      19     ; MEMORY LOCATIONS:
+                      20     ;                               TM1             EQU             30H                        
+                                  ; TEMPORARY MEMORY FOR DIP SWITCHES
+                      21     ;                               PL1M    EQU             31H                             ; P
+                             RIORITY LEVEL 1 MEMORY
+                      22     ;                               PL2M    EQU             32H                             ; P
+                             RIORITY LEVEL 2 MEMORY
+                      23     ;                               PL3M    EQU             33H                             ; P
+                             RIORITY LEVEL 3 MEMORY
+                      24     ;                               PL4M    EQU             34H                             ; P
+                             RIORITY LEVEL 4 MEMORY
+                      25     ;                               PPISM   EQU             35H                             ; P
+                             REVIOUS PHASE INDICATOR STATE MEMORY
+                      26     ;                               DM1             EQU             36H                        
+                                  ; DELAY MEMORY 1
+                      27     ;                               DM2             EQU             37H                        
+                                  ; DELAY MEMORY 2
+                      28     ;                               TM2             EQU             38H                        
+                                  ; TEMPORARY MEMORY FOR THE PREVIOUS VALUES OF THE DIP SWs
+                      29     ;                               TDM1    EQU             39H                             ; T
+                             IME DELAY MEMORY 1
+                      30     ;                               TDM2    EQU             3AH                             ; T
+                             IME DELAY MEMORY 2
+                      31     ;                               TDM3    EQU             3BH                             ; T
+                             IME DELAY MEMORY 3
+                      32     
+                      33     ; ========================================== MAIN =========================================
+                             ============
+                      34     
+0000                  35                                     ORG             0000H
+0000 8004             36                                     JMP             MAIN                                    ; O
+                             N SYSTEM RESET, JUMP TO MAIN
+0003                  37                                     ORG             0003H
+0003 01AF             38                                     JMP             PRIORITY_SETUP                  ; ON SYSTEM
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     2
+
+                              EXTERNAL INTERRUPT 0, JUMP TO THE ISR 'PRIORITY_SETUP'
+                      39     
+                      40     ; =========================================================================================
+                             ============
+0006                  41                                     ORG             0006H                                   ; S
+                             TART AT THIS ADDRESS
+0006                  42     MAIN:                   
+0006 D288             43                                     SETB    IT0                                             ; C
+                             HOOSE NEGATIVE EGDE INTERRUPT TYPE FOR EXTERNAL INTERRUPT 0                          
+0008 75A881           44                                     MOV     IE, #10000001B                  ; ENABLE THE !INT0 
+                             EXTERNAL INTERRUPT (PRIORITY_SETUP ISR)
+                      45     
+000B 75900F           46                                     MOV             P1, #0FH                                ; M
+                             AKE THE LSB OF P1 INPUT PORTS
+000E C2B3             47                                     CLR             P3.3                                    ; T
+                             URN OFF THE LED TO SHOW THAT THE PRIORITY SETUP IS NOT BEING PROCESSED
+0010 3000FD           48                                     JNB             00H, $                                  ; S
+                             TAY HERE UNLESS THE PRIORITY LEVEL HAS BEEN RESET AT LEAST ONCE
+0013 753804           49     REPEAT:                 MOV             38H, #04H                               ; COUNTER F
+                             OR THE FOUR MEMORIES (THE NATURE OF THE PROGRAM MADE ME TO LOAD THREE)
+0016 C201             50                                     CLR             01H
+                      51     
+0018 7831             52                                     MOV             R0, #31H                                ; L
+                             OAD IMMEDIATE THE FIRST MEMORY LOCATION
+001A E6               53     RP_1:                   MOV             A,@R0                                   ; LOAD THE 
+                             CONTENT OF THE PRIORITY LEVEL MEMORY
+001B 3100             54                                     CALL    COMPARATOR      
+001D 2001F3           55                                     JB              01H, REPEAT                             ; S
+                             TART AFRESH WHEN A NEW STATE IS DETECTED
+0020 08               56                                     INC             R0                                         
+                                  ; NEXT PRIORITY LEVEL MEMORY LOCATION
+0021 D538F6           57                                     DJNZ    38H, RP_1                               ; COUNTER T
+                             AKE NOTE
+0024 80ED             58                                     SJMP    REPEAT                                  ; START AFR
+                             ESH
+                      59     
+                      60     ;==========================================================================================
+                             ============
+0026                  61     R_TURN_OFF_GEN: 
+0026 A290             62                                     MOV             C, P1.0                                 ; R
+                             EAD THE RED PHASE INDICATOR PIN
+0028 5011             63                                     JNC             EXIT_R_TURN_OFF_GEN             ; EXIT THE 
+                             SR IF THERE IS NO SUPPLY
+002A C297             64                                     CLR             P1.7                                    ; T
+                             URN OFF THE GENERATOR
+002C C295             65                                     CLR             P1.5                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+002E C296             66                                     CLR             P1.6                                    
+0030 117A             67                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0032 D294             68                                     SETB    P1.4                                    ; CONNECT T
+                             HE RED PHASE
+0034 311B             69     RED:                    ACALL   PI_STATES                               ; STAYS IN THE LOOP
+                              TILL THE STATE OF ANY PHASE INDICATOR CHANGES
+0036 3001FB           70                                     JNB             01H, RED
+0039 C294             71                                     CLR             P1.4                                    ; E
+                             LSE RED PHASE IS OFF, DISCONNECT     R
+003B                  72     EXIT_R_TURN_OFF_GEN:
+003B 22               73                                     RET
+                      74     ; ----------------------------------------------
+003C                  75     Y_TURN_OFF_GEN: 
+003C A291             76                                     MOV             C, P1.1                                 ; R
+                             EAD THE YELLOW PHASE INDICATOR PIN
+003E 5011             77                                     JNC             EXIT_Y_TURN_OFF_GEN             ; EXIT THE 
+                             SR IF THERE IS NO SUPPLY
+0040 C297             78                                     CLR             P1.7                                    ; T
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     3
+
+                             URN OFF THE GENERATOR
+0042 C296             79                                     CLR             P1.6                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+0044 C294             80                                     CLR             P1.4                                    
+0046 117A             81                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0048 D295             82                                     SETB    P1.5                                    ; CONNECT T
+                             HE YELLOW PHASE
+004A 311B             83     YELLOW:                 ACALL   PI_STATES                               ; STAYS IN THE LOOP
+                              TILL THE STATE OF ANY PHASE INDICATOR CHANGES
+004C 3001FB           84                                     JNB             01H, YELLOW
+004F C295             85                                     CLR             P1.5                                    ; E
+                             LSE YELLOW PHASE IS OFF, DISCONNECT Y
+0051                  86     EXIT_Y_TURN_OFF_GEN:
+0051 22               87                                     RET
+                      88     ; ----------------------------------------------
+0052                  89     B_TURN_OFF_GEN:
+0052 A292             90                                     MOV             C, P1.2                                 ; R
+                             EAD THE BLUE PHASE INDICATOR PIN
+0054 5011             91                                     JNC             EXIT_B_TURN_OFF_GEN             ; EXIT THE 
+                             SR IF THERE IS NO SUPPLY
+0056 C297             92                                     CLR             P1.7                                    ; T
+                             URN OFF THE GENERATOR
+0058 C295             93                                     CLR             P1.5                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+005A C294             94                                     CLR             P1.4
+005C 117A             95                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+005E D296             96                                     SETB    P1.6                                    ; CONNECT T
+                             HE BLUE PHASE
+0060 311B             97     BLUE:                   ACALL   PI_STATES                               ; STAYS IN THE LOOP
+                              TILL THE STATE OF ANY PHASE INDICATOR CHANGES
+0062 3001FB           98                                     JNB             01H, BLUE
+0065 C296             99                                     CLR             P1.6                                    ; E
+                             LSE BLUE PHASE IS OFF, DISCONNECT B
+0067                 100     EXIT_B_TURN_OFF_GEN:
+0067 22              101                                     RET
+                     102     ; ----------------------------------------------
+0068                 103     TURN_OFF_ALL_EX_GEN:
+                     104     
+                     105     
+                     106     
+                     107     
+                     108     
+                     109                                     ; INCLUDE THE CODE TO TURN ON THE GENERATOR, HERE
+0068 C294            110                                     CLR             P1.4                                    ; C
+                             LEAR ALL (TURN OFF) OTHER PIN LINES/PHASE SWITCHES
+006A C295            111                                     CLR             P1.5                                    
+006C C296            112                                     CLR             P1.6
+006E 117A            113                                     ACALL   DELAY                                   ; CALL DELA
+                             Y FOR PROTECTION
+0070 D297            114                                     SETB    P1.7                                    ; CONNECT T
+                             HE GENERATOR PHASE
+0072 311B            115     GENERATOR:              ACALL   PI_STATES                               ; STAYS IN THE LOOP
+                              TILL THE STATE OF ANY PHASE INDICATOR CHANGES
+0074 3001FB          116                                     JNB             01H, GENERATOR
+0077 C297            117                                     CLR             P1.7                                    ; E
+                             LSE BLUE PHASE IS OFF, DISCONNECT B
+                     118     
+0079 22              119                                     RET
+                     120     
+                     121     ; ============================== DELAY USED FOR SAFETY/PROTECTION =========================
+                             ============
+007A                 122     DELAY:                  
+007A 7539FF          123                                     MOV             39H, #0FFH 
+007D 753AFF          124     J:                              MOV             3AH, #0FFH
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     4
+
+0080 D53AFD          125                                     DJNZ    3AH, $
+0083 D539F7          126                                     DJNZ    39H, J
+0086 22              127                                     RET
+                     128     
+                     129     ; ================================ 20mS DELAY FOR DELAY IN DETECTION ======================
+                             =====================
+0087                 130     DELAY_20mS:
+0087 75393B          131                                     MOV             39H, #3BH                               ; M
+                             OVE #0FFH INTO MEM LOCATIONS (3BH & 3CH) THAT SERVE AS COUNTER FOR THIS PARTICULAR
+008A 753AA8          132     DLY_20mS_1:             MOV             3AH, #0A8H                              ; DELAY SUB
+                             ROUTINE
+008D D53AFD          133                                     DJNZ    3AH, $                                  ; STAY HERE
+                              TILL THE CONTENT OF THE MEMORY LOCATION (3CH) IS ZERO
+0090 D539F7          134                                     DJNZ    39H, DLY_20mS_1                 ; STAY HERE TILL TH
+                             E CONTENT OF THE MEMORY LOCATION (3BH) IS ZERO
+                     135     
+0093 22              136                                     RET
+                     137     
+                     138     ; ================================ 2S DELAY  FOR DEBOUNCING ===============================
+                             ============
+0094 753B64          139     DELAY_2S:               MOV             3BH, #64H                               ; MOVE #64H
+                              (100DEC) INTO MEM LOC. 3DH FOR DELAY (100 x 20mS = 2S)
+                     140                                     ; 20mS DELAY
+0097 75393D          141     DLY_2S_1:               MOV             39H, #3DH                               ; MOVE #0FF
+                             H INTO MEM LOCATIONS (3BH & 3CH) THAT SERVE 
+009A 753AA2          142     DLY_2S_2:               MOV             3AH, #0A2H                              ; AS COUNTE
+                             R FOR THIS PARTICULAR DELAY SUBROUTINE
+009D D53AFD          143                                     DJNZ    3AH, $                                  ; STAY HERE
+                              TILL THE CONTENT OF THE MEMORY LOCATION (3CH) IS ZERO
+00A0 D539F7          144                                     DJNZ    39H, DLY_2S_2                   ; STAY HERE TILL TH
+                             E CONTENT OF THE MEMORY LOCATION (3BH) IS ZERO
+                     145                                     ; --- END
+00A3 D53BF1          146                                     DJNZ    3BH, DLY_2S_1                   ; STAY HERE TILL TH
+                             E CONTENT OF THE MEMORY LOCATION (3BH) IS ZERO
+                     147     
+00A6 22              148                                     RET
+                     149     
+                     150     ; ================================== DIP SWITCH STATES ====================================
+                             ============
+00A7                 151     DIP_SW:
+00A7 85B030          152                                     MOV             30H, P3                                 ; M
+                             OVE THE PRESENT STATE OF THE DIP SWITCHES TO THE MEM LOCATION 30H
+00AA E530            153                                     MOV             A, 30H                                  ; M
+                             OVE THE PRESENT STATE OF THE DIP SWITCHES TO THE ACCUMULATOR
+00AC 54A3            154                                     ANL             A, #10100011B                   ; MASK ALL 
+                             THE BITS/PINS EXCEPT THOSE CONNECTED TO THE DIP SWITCHES
+00AE 22              155                                     RET
+                     156     
+                     157     ; =================================== PRIORITY SETUP ======================================
+                             ============
+00AF                 158     PRIORITY_SETUP:
+                     159     ; THIS ISR SETS THE PRIORITY LEVELS OF THE DIFFERENT PHASES CONNECTED TO THE SYSTEM
+                     160     ; FOR NOW WE HAVE ONLY 3 PHASES(RYB) + GENERATOR SUPPLY
+00AF C2AF            161                                     CLR             EA                                         
+                                  ; DISABLE ALL INTERRUPTS
+                     162     ;                               CLR             IE0                                        
+                                  ; CLEAR THE INTERRUPT FLAG FOR EXTERNAL INTERRUPT 0
+00B1 D2B3            163                                     SETB    P3.3                                    ; TURN ON T
+                             HE LED TO SHOW THAT THE PRIORITY SETUP IS GOING ON
+                     164                                     ; ---- ENSURES THAT ALL THE DIP SWITCHES ARE IN THE RESET S
+                             TATE (ie #00) BEFORE SETUP IS CARRIED OUT
+00B3 11A7            165                                     CALL    DIP_SW                                  ; READ THE 
+                             PORT CONNECTED TO THE DIP SWITCHES
+00B5 B400F7          166                                     CJNE    A, #00H, PRIORITY_SETUP ; CHECK IF THE INITIAL STAT
+                             E OF THE DIP CHANGED
+                     167                                     ; ---- END
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     5
+
+00B8 11A7            168     PS_1:                   CALL    DIP_SW
+00BA B40002          169                                     CJNE    A, #00H, PS_1_X                 ; ENSURE THAT THE S
+                             TATE OF THE DIP SWITCHES HAS CHANGED BEFORE CONTINUING
+00BD 80F9            170                                     SJMP    PS_1                                    
+00BF F538            171     PS_1_X:                 MOV             38H, A                                  ; SAVE THE 
+                             DIP SW STATE
+00C1 F531            172                                     MOV             31H, A                                  ; S
+                             AVE THE FIRST PRIORITY LINE
+                     173     
+00C3 11A7            174     PS_2:                   CALL    DIP_SW
+00C5 B53802          175                                     CJNE    A, 38H, PS_2_X                  ; ENSURE THAT THE S
+                             TATE OF THE DIP SWITCHES HAS CHANGED BEFORE CONTINUING
+00C8 80F9            176                                     SJMP    PS_2                                    
+00CA F538            177     PS_2_X:                 MOV             38H, A                                  ; SAVE THE 
+                             DIP SW STATE
+00CC 6531            178                                     XRL             A, 31H
+00CE F532            179                                     MOV             32H, A                                  ; S
+                             AVE THE SECOND PRIORITY LINE
+                     180     
+00D0 11A7            181     PS_3:                   CALL    DIP_SW
+00D2 B53802          182                                     CJNE    A, 38H, PS_3_X                  ; ENSURE THAT THE S
+                             TATE OF THE DIP SWITCHES HAS CHANGED BEFORE CONTINUING
+00D5 80F9            183                                     SJMP    PS_3                                    
+00D7 F538            184     PS_3_X:                 MOV             38H, A                                  ; SAVE THE 
+                             DIP SW STATE
+00D9 6531            185                                     XRL             A, 31H
+00DB 6532            186                                     XRL             A, 32H
+00DD F533            187                                     MOV             33H, A                                  ; S
+                             AVE THE THIRD PRIORITY LINE
+                     188     
+00DF 11A7            189     PS_4:                   CALL    DIP_SW
+00E1 B53802          190                                     CJNE    A, 38H, PS_4_X                  ; ENSURE THAT THE S
+                             TATE OF THE DIP SWITCHES HAS CHANGED BEFORE CONTINUING
+00E4 80F9            191                                     SJMP    PS_4                                    
+00E6 F538            192     PS_4_X:                 MOV             38H, A                                  ; SAVE THE 
+                             DIP SW STATE
+00E8 6531            193                                     XRL             A, 31H
+00EA 6532            194                                     XRL             A, 32H
+00EC 6533            195                                     XRL             A, 33H
+00EE F534            196                                     MOV             34H, A                                  ; S
+                             AVE THE FOURTH/LAST PRIORITY LINE
+                     197                                     
+00F0 D200            198                                     SETB    00H                                             ; I
+                             NDICATE THAT A RESET/CHANGE IN THE PRIORITY LEVEL HAS BEEN CARRIED OUT
+00F2 D2B2            199                                     SETB    P3.2                                    ; MAKE P3.2
+                              AN INPUT PORT NOW
+00F4 20B2FD          200                                     JB              P3.2, $                                 ; S
+                             TAY HERE TILL THE USER INDICATES THAT HE'S DONE (A NORMALLY-ON PIN)
+00F7 C2B3            201                                     CLR             P3.3                                    ; T
+                             URN OFF THE LED TO SHOW THAT THE PRIORITY SETUP HAS FINISHED
+00F9 1194            202                                     CALL    DELAY_2S                                ; FOR DEBOU
+                             NCE PROTECTION FOR THE KEY THAT HAS DUAL PURPOSE (P3.2)
+00FB C289            203                                     CLR             IE0                                        
+                                  ; CLEAR THE INTERRUPT FLAG FOR EXTERNAL INTERRUPT 0
+00FD D2AF            204                                     SETB    EA                                              ; E
+                             NABLE ALL INTERRUPTS
+00FF 32              205                                     RETI
+                     206     
+                     207     ; =================================== COMPARATOR ==========================================
+                             ========
+0100                 208     COMPARATOR:
+                     209     ; THE CONTENT OF THE ACCUMULATOR ON ENTERING THIS SR IS EXPECTED TO HAVE THE CONTENT OF ANY
+                              OF THE FOLLOWING
+                     210     ; MEMORY LOCATIONS (31H, 32H, 33H, 34H)
+0100 B40104          211                                     CJNE    A, #00000001B, C1
+0103 1126            212                                     CALL    R_TURN_OFF_GEN
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     6
+
+0105 8013            213                                     SJMP    EXIT_C 
+0107 B40204          214     C1:                             CJNE    A, #00000010B, C2
+010A 113C            215                                     CALL    Y_TURN_OFF_GEN
+010C 800C            216                                     SJMP    EXIT_C 
+010E B42004          217     C2:                             CJNE    A, #00100000B, C3
+0111 1152            218                                     CALL    B_TURN_OFF_GEN
+0113 8005            219                                     SJMP    EXIT_C 
+0115 B48002          220     C3:                             CJNE    A, #10000000B, EXIT_C
+0118 1168            221                                     CALL    TURN_OFF_ALL_EX_GEN
+011A                 222     EXIT_C:                 
+011A 22              223                                     RET
+                     224     
+                     225     ; =================================== PI_STATES ===========================================
+                             =======
+011B                 226     PI_STATES:      
+                     227     ; THIS IS AN OSR THAT IS CALLED CONTINUALY TO CHECK THE STATE OF THE PHASE INDICATORS   
+011B E590            228                                     MOV             A, P1                                   ; R
+                             EAD THE PORT THAT WAS INTERFACED TO PHASE INDICATORS 
+011D 540F            229                                     ANL             A, #00001111B                   ; MASK THE 
+                             PINS THAT ARE NOT INTERFACED TO THE PHASE INDICATORS
+011F F535            230                                     MOV             35H, A                                  ; S
+                             AVE THE NEW STATE OF THE PHASE INDICATORS
+                     231                                     ; SEE IF IT WOULD BE NECESSARY TO ADD A DELAY HERE FOR CHAN
+                             GE IN STATE TO BE DETECTED
+0121 1187            232                                     CALL    DELAY_20mS                              ; FOR DEBOU
+                             NCE PROTECTION FOR THE KEY THAT HAS DUAL PURPOSE (P3.2)
+0123 E590            233                                     MOV             A, P1                                   ; A
+                             GAIN, READ THE PORT THAT WAS INTERFACED TO PHASE INDICATORS 
+0125 540F            234                                     ANL             A, #00001111B                   ; MASK THE 
+                             PINS THAT ARE NOT INTERFACED TO THE PHASE INDICATORS
+0127 B53502          235                                     CJNE    A, 35H, PIS                             ; CHECK THE
+                              STATE OF THE PHASE INDICATORS. IF CHANGED SET FLAG AND EXIT ELSE JUST EXIT 
+012A 8002            236                                     SJMP    EXIT_PI_STATES
+                     237                                     
+012C D201            238     PIS:                    SETB    01H                                             ; SET FLAG 
+                             TO INDICATE THAT THE PHASE INDICATORS' STATE HAS CHANGED
+                     239     
+012E 22              240     EXIT_PI_STATES: RET
+                     241     
+                     242                                     END
+A51 MACRO ASSEMBLER  ACOSMAIN_P                                                           11/29/2016 15:14:57 PAGE     7
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E              T Y P E  V A L U E   ATTRIBUTES
+
+BLUE. . . . . . . .  C ADDR   0060H   A   
+B_TURN_OFF_GEN. . .  C ADDR   0052H   A   
+C1. . . . . . . . .  C ADDR   0107H   A   
+C2. . . . . . . . .  C ADDR   010EH   A   
+C3. . . . . . . . .  C ADDR   0115H   A   
+COMPARATOR. . . . .  C ADDR   0100H   A   
+DELAY . . . . . . .  C ADDR   007AH   A   
+DELAY_20MS. . . . .  C ADDR   0087H   A   
+DELAY_2S. . . . . .  C ADDR   0094H   A   
+DIP_SW. . . . . . .  C ADDR   00A7H   A   
+DLY_20MS_1. . . . .  C ADDR   008AH   A   
+DLY_2S_1. . . . . .  C ADDR   0097H   A   
+DLY_2S_2. . . . . .  C ADDR   009AH   A   
+EA. . . . . . . . .  B ADDR   00A8H.7 A   
+EXIT_B_TURN_OFF_GEN  C ADDR   0067H   A   
+EXIT_C. . . . . . .  C ADDR   011AH   A   
+EXIT_PI_STATES. . .  C ADDR   012EH   A   
+EXIT_R_TURN_OFF_GEN  C ADDR   003BH   A   
+EXIT_Y_TURN_OFF_GEN  C ADDR   0051H   A   
+GENERATOR . . . . .  C ADDR   0072H   A   
+IE. . . . . . . . .  D ADDR   00A8H   A   
+IE0 . . . . . . . .  B ADDR   0088H.1 A   
+IT0 . . . . . . . .  B ADDR   0088H.0 A   
+J . . . . . . . . .  C ADDR   007DH   A   
+MAIN. . . . . . . .  C ADDR   0006H   A   
+P1. . . . . . . . .  D ADDR   0090H   A   
+P3. . . . . . . . .  D ADDR   00B0H   A   
+PIS . . . . . . . .  C ADDR   012CH   A   
+PI_STATES . . . . .  C ADDR   011BH   A   
+PRIORITY_SETUP. . .  C ADDR   00AFH   A   
+PS_1. . . . . . . .  C ADDR   00B8H   A   
+PS_1_X. . . . . . .  C ADDR   00BFH   A   
+PS_2. . . . . . . .  C ADDR   00C3H   A   
+PS_2_X. . . . . . .  C ADDR   00CAH   A   
+PS_3. . . . . . . .  C ADDR   00D0H   A   
+PS_3_X. . . . . . .  C ADDR   00D7H   A   
+PS_4. . . . . . . .  C ADDR   00DFH   A   
+PS_4_X. . . . . . .  C ADDR   00E6H   A   
+RED . . . . . . . .  C ADDR   0034H   A   
+REPEAT. . . . . . .  C ADDR   0013H   A   
+RP_1. . . . . . . .  C ADDR   001AH   A   
+R_TURN_OFF_GEN. . .  C ADDR   0026H   A   
+TURN_OFF_ALL_EX_GEN  C ADDR   0068H   A   
+YELLOW. . . . . . .  C ADDR   004AH   A   
+Y_TURN_OFF_GEN. . .  C ADDR   003CH   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
